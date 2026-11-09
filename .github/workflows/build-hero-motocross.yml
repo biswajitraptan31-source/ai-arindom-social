@@ -15,6 +15,23 @@ jobs:
     container:
       image: barichello/godot-ci:4.3
     steps:
+      - name: Install Java and Android export templates
+        run: |
+          apt-get update
+          apt-get install -y openjdk-17-jdk unzip curl
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
+          curl -L --fail -o /tmp/godot-templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
+          cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.3.stable/"
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"
+          export/android/android_sdk_path = "/usr/lib/android-sdk"
+          EOF
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Export Android APK
