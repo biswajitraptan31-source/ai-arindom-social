@@ -1,0 +1,31 @@
+name: Build HERO MOTOCROSS 3D Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hero-motocross-3d
+    paths:
+      - 'hero-motocross-3d/**'
+      - '.github/workflows/build-hero-motocross.yml'
+
+jobs:
+  android:
+    runs-on: ubuntu-22.04
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Export Android APK
+        run: |
+          mkdir -p artifacts
+          godot --headless --path hero-motocross-3d --editor --quit
+          godot --headless --path hero-motocross-3d --export-debug "Android" artifacts/HeroMotocross3D-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeroMotocross3D-Android-APK
+          path: artifacts/HeroMotocross3D-debug.apk
+          if-no-files-found: error
+          retention-days: 14
