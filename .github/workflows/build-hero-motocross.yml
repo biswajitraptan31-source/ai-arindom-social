@@ -34,6 +34,8 @@ jobs:
           [resource]
           export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"
           export/android/android_sdk_path = "/usr/lib/android-sdk"
+          export/android/build_tools_version = "35.0.0"
+          export/android/target_sdk_version = "35"
           EOF
           mkdir -p "$HOME/.android"
           keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
