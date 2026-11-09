@@ -117,7 +117,7 @@ fun SocialApp() {
                 }
             },
             bottomBar = {
-                NavigationBar(containerColor = Color.White) {
+                NavigationBar(containerColor = Color(0xFFFCFAFF), tonalElevation = 8.dp) {
                     listOf("Home", "Search", "Create", "Reels", "Profile").forEach { item ->
                         val icon = when (item) {
                             "Home" -> Icons.Default.Home
@@ -139,14 +139,14 @@ fun SocialApp() {
             when (selected) {
                 "Home" -> LazyColumn(Modifier.padding(padding).fillMaxSize().padding(horizontal = 14.dp)) {
                     item {
-                        Text("Your feed", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.padding(vertical = 16.dp))
+                        Text("Good to see you 👋", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))\n                        Text("Catch up with your community", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 14.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             AssistChip(onClick = { selected = "Create" }, label = { Text("＋ Add story") })
                             stories.forEach { story ->
                                 AssistChip(onClick = { Toast.makeText(context, "Story by " + story.owner, Toast.LENGTH_SHORT).show() }, label = { Text("● " + story.owner) })
                             }
                         }
-                        Text("Latest posts", color = Color.Gray, fontSize = 13.sp, modifier = Modifier.padding(vertical = 10.dp))
+                        Text("FEED", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, modifier = Modifier.padding(top = 18.dp, bottom = 10.dp))
                     }
                     items(posts, key = { it.id }) { post ->
                         PostCard(post = post, onLike = {
@@ -309,13 +309,13 @@ fun MediaPreview(uri: Uri, type: String, autoplay: Boolean) {
         AndroidView(
             factory = { ctx -> PlayerView(ctx).apply { this.player = player; useController = true } },
             update = { it.player = player },
-            modifier = Modifier.fillMaxWidth().height(260.dp).background(Color.Black, RoundedCornerShape(14.dp))
+            modifier = Modifier.fillMaxWidth().height(280.dp).background(Brush.linearGradient(listOf(Color(0xFF21183E), Color(0xFF5A3C8D))), RoundedCornerShape(16.dp))
         )
     } else {
         AndroidView(
             factory = { ctx -> ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setImageURI(uri) } },
             update = { it.setImageURI(uri) },
-            modifier = Modifier.fillMaxWidth().height(260.dp).background(Color.LightGray, RoundedCornerShape(14.dp))
+            modifier = Modifier.fillMaxWidth().height(280.dp).background(Brush.linearGradient(listOf(Color(0xFFE8DFFF), Color(0xFFDDF2FF))), RoundedCornerShape(16.dp))
         )
     }
 }
