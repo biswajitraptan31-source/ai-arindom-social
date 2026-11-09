@@ -95,7 +95,7 @@ func _build_bike() -> void:
 	_box_child(bike, "Handlebar", Vector3(0, 0.78, -0.9), Vector3(1.0, 0.08, 0.10), Color(0.12, 0.12, 0.13))
 	_box_child(bike, "Headlight", Vector3(0, 0.42, -1.02), Vector3(0.32, 0.25, 0.12), Color(1.0, 0.88, 0.56))
 
-func _cylinder(parent: Node3D, label: String, pos: Vector3, radius: float, height: float, color: Color, wheel := false) -> void:
+func _cylinder(parent: Node3D, label: String, pos: Vector3, radius: float, height: float, color: Color, wheel: bool = false) -> void:
 	var node := MeshInstance3D.new()
 	node.name = label
 	var mesh := CylinderMesh.new()
