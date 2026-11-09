@@ -139,7 +139,8 @@ fun SocialApp() {
             when (selected) {
                 "Home" -> LazyColumn(Modifier.padding(padding).fillMaxSize().padding(horizontal = 14.dp)) {
                     item {
-                        Text("Good to see you 👋", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))\n                        Text("Catch up with your community", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 14.dp))
+                        Text("Good to see you 👋", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
+                        Text("Catch up with your community", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 14.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             AssistChip(onClick = { selected = "Create" }, label = { Text("＋ Add story") })
                             stories.forEach { story ->
