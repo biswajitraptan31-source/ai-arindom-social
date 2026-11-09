@@ -19,6 +19,11 @@ jobs:
         run: |
           apt-get update
           apt-get install -y openjdk-17-jdk unzip curl
+          export ANDROID_HOME=/usr/lib/android-sdk
+          export ANDROID_SDK_ROOT=/usr/lib/android-sdk
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/cmdline-tools/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
           curl -L --fail -o /tmp/godot-templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
