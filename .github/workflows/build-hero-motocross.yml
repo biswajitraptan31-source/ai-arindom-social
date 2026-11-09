@@ -58,7 +58,7 @@ jobs:
           ls -la "$ANDROID_SDK_ROOT/build-tools"
           mkdir -p artifacts
           godot --headless --path hero-motocross-3d --editor --quit
-          godot --headless --path hero-motocross-3d --export-debug "Android" artifacts/HeroMotocross3D-debug.apk
+          godot --headless --verbose --path hero-motocross-3d --export-debug "Android" artifacts/HeroMotocross3D-debug.apk
           test -s artifacts/HeroMotocross3D-debug.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
