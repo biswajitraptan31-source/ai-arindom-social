@@ -25,11 +25,15 @@ jobs:
           apt-get install -y openjdk-17-jdk unzip curl
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/cmdline-tools/bin/sdkmanager"
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"
           echo "Installed Android SDK packages:"
           ls -la "$ANDROID_HOME/build-tools"
-          test -d "$ANDROID_HOME/build-tools/33.0.2"
-          test -d "$ANDROID_HOME/platforms/android-33"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          test -x "$ANDROID_HOME/platform-tools/adb"
+          test -d "$ANDROID_HOME/platforms/android-34"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -d "$ANDROID_HOME/cmake/3.10.2.4988404"
+          test -d "$ANDROID_HOME/ndk/23.2.8568313"
           mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
           curl -L --fail -o /tmp/godot-templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
@@ -40,8 +44,6 @@ jobs:
           [resource]
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_HOME"
-          export/android/build_tools_version = "33.0.2"
-          export/android/target_sdk_version = "33"
           EOF
           echo "Godot Android export settings:"
           cat "$HOME/.config/godot/editor_settings-4.tres"
