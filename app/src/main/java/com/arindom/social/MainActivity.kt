@@ -26,12 +26,15 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,8 +63,11 @@ data class Post(
     val likes: Int,
     val liked: Boolean = false,
     val mediaUri: Uri? = null,
-    val mediaType: String? = null
+    val mediaType: String? = null,
+    val audioUri: Uri? = null
 )
+
+data class Story(val id: Int, val owner: String, val mediaUri: Uri, val mediaType: String)
 
 @Composable
 fun SocialApp() {
@@ -70,6 +76,10 @@ fun SocialApp() {
     var search by remember { mutableStateOf("") }
     var selectedMedia by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) }
+    var selectedAudio by remember { mutableStateOf<Uri?>(null) }
+    var chatText by remember { mutableStateOf("") }
+    var chatMessages by remember { mutableStateOf(listOf("Welcome to AI ARINDOM SOCIAL!")) }
+    var stories by remember { mutableStateOf(listOf<Story>()) }
     var posts by remember {
         mutableStateOf(listOf(
             Post(1, "Arindom", "@arindom", "Welcome to AI ARINDOM SOCIAL! ✨", 128),
@@ -84,10 +94,14 @@ fun SocialApp() {
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) { selectedMedia = uri; selectedMediaType = "video" }
     }
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) selectedAudio = uri
+    }
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Violet, background = Surface)) {
         Scaffold(
-            containerColor = Surface,
+            modifier = Modifier.background(Brush.verticalGradient(listOf(Color(0xFFEDE9FF), Color(0xFFF8F4FF), Color(0xFFEAF5FF)))),
+            containerColor = Color.Transparent,
             topBar = {
                 Row(
                     Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 18.dp, vertical = 16.dp),
@@ -97,7 +111,9 @@ fun SocialApp() {
                     Spacer(Modifier.width(7.dp))
                     Text("ARINDOM SOCIAL", color = Ink, fontSize = 19.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
-                    Icon(Icons.Default.Favorite, contentDescription = "Activity", tint = Violet)
+                    IconButton(onClick = { selected = "Messages" }) {
+                        Icon(Icons.Default.Message, contentDescription = "Messages", tint = Violet)
+                    }
                 }
             },
             bottomBar = {
@@ -125,8 +141,9 @@ fun SocialApp() {
                     item {
                         Text("Your feed", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.padding(vertical = 16.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf("＋ Your story", "Friends", "Explore").forEach { name ->
-                                AssistChip(onClick = { if (name.contains("story")) selected = "Create" }, label = { Text(name) })
+                            AssistChip(onClick = { selected = "Create" }, label = { Text("＋ Add story") })
+                            stories.forEach { story ->
+                                AssistChip(onClick = { Toast.makeText(context, "Story by " + story.owner, Toast.LENGTH_SHORT).show() }, label = { Text("● " + story.owner) })
                             }
                         }
                         Text("Latest posts", color = Color.Gray, fontSize = 13.sp, modifier = Modifier.padding(vertical = 10.dp))
@@ -151,14 +168,28 @@ fun SocialApp() {
                     Spacer(Modifier.height(16.dp))
                     OutlinedTextField(value = caption, onValueChange = { caption = it }, modifier = Modifier.fillMaxWidth(), minLines = 4, label = { Text("Write a caption...") })
                     Spacer(Modifier.height(14.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { imagePicker.launch("image/*") }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Image, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Photo")
+                            Icon(Icons.Default.Image, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("Photo")
                         }
                         OutlinedButton(onClick = { videoPicker.launch("video/*") }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.VideoLibrary, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Video")
+                            Icon(Icons.Default.VideoLibrary, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("Video")
                         }
                     }
+                    OutlinedButton(onClick = { audioPicker.launch("audio/*") }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.MusicNote, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (selectedAudio == null) "Add song to Reel" else "Song selected ✓")
+                    }
+                    Button(onClick = {
+                        if (selectedMedia != null) {
+                            stories = listOf(Story((stories.maxOfOrNull { it.id } ?: 0) + 1, "You", selectedMedia!!, selectedMediaType ?: "image")) + stories
+                            Toast.makeText(context, "Story added for this session", Toast.LENGTH_SHORT).show()
+                            selectedMedia = null
+                            selectedMediaType = null
+                            selected = "Home"
+                        } else Toast.makeText(context, "Choose a photo or video for your story", Toast.LENGTH_SHORT).show()
+                    }, modifier = Modifier.fillMaxWidth()) { Text("Share as story") }
                     selectedMedia?.let { uri ->
                         Spacer(Modifier.height(12.dp))
                         Text("Selected ${selectedMediaType ?: "media"}", color = Violet, fontWeight = FontWeight.SemiBold)
@@ -168,16 +199,17 @@ fun SocialApp() {
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = {
                         if (caption.isNotBlank() || selectedMedia != null) {
-                            posts = listOf(Post((posts.maxOfOrNull { it.id } ?: 0) + 1, "You", "@you", caption.trim(), 0, mediaUri = selectedMedia, mediaType = selectedMediaType)) + posts
+                            posts = listOf(Post((posts.maxOfOrNull { it.id } ?: 0) + 1, "You", "@you", caption.trim(), 0, mediaUri = selectedMedia, mediaType = selectedMediaType, audioUri = selectedAudio)) + posts
                             caption = ""
                             selectedMedia = null
                             selectedMediaType = null
+                            selectedAudio = null
                             selected = "Home"
                         } else {
                             Toast.makeText(context, "Write a caption or choose a photo/video", Toast.LENGTH_SHORT).show()
                         }
                     }, modifier = Modifier.fillMaxWidth()) { Text("Share post") }
-                    Text("Choose a photo or video from your phone. Posts are stored only in this app session for now.", color = Color.Gray, modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
+                    Text("Add a photo/video, caption and optional song. Posts and stories are local to this app session.", color = Color.Gray, modifier = Modifier.padding(top = 12.dp), fontSize = 12.sp)
                 }
                 "Reels" -> {
                     val videos = posts.filter { it.mediaType == "video" && it.mediaUri != null }
@@ -196,10 +228,38 @@ fun SocialApp() {
                                     Text("${post.author}  ${post.handle}", fontWeight = FontWeight.Bold, color = Ink)
                                     MediaPreview(uri = post.mediaUri!!, type = "video", autoplay = true)
                                     Text(post.caption, modifier = Modifier.padding(8.dp), color = Ink)
+                                    post.audioUri?.let { AudioPreview(it) }
                                 }
                             }
                         }
                     }
+                }
+                "Messages" -> Column(Modifier.padding(padding).fillMaxSize().padding(18.dp)) {
+                    Text("Messages", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    Text("Your chats", color = Color.Gray)
+                    Card(Modifier.fillMaxWidth().padding(top = 16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(42.dp).background(Violet.copy(alpha = .15f), CircleShape), contentAlignment = Alignment.Center) {
+                                    Text("A", color = Violet, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column { Text("Arindom Support", color = Ink, fontWeight = FontWeight.Bold); Text("Demo conversation", color = Color.Gray, fontSize = 12.sp) }
+                            }
+                            Divider(Modifier.padding(vertical = 12.dp))
+                            chatMessages.forEach { message ->
+                                Text(message, color = Ink, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).background(Color(0xFFF0EDFF), RoundedCornerShape(12.dp)).padding(12.dp))
+                            }
+                            OutlinedTextField(value = chatText, onValueChange = { chatText = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Write a message") })
+                            Button(onClick = {
+                                if (chatText.isNotBlank()) {
+                                    chatMessages = chatMessages + chatText.trim()
+                                    chatText = ""
+                                }
+                            }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Send message") }
+                        }
+                    }
+                    Text("Demo only: messages are not sent to another person. Online chat needs accounts and a secure backend.", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
                 }
                 else -> Column(Modifier.padding(padding).fillMaxSize().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(Modifier.height(30.dp))
@@ -216,6 +276,22 @@ fun SocialApp() {
             }
         }
     }
+}
+
+@Composable
+@Composable
+fun AudioPreview(uri: Uri) {
+    val context = LocalContext.current
+    val player = remember(uri) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(uri))
+            prepare()
+        }
+    }
+    DisposableEffect(player) { onDispose { player.release() } }
+    AndroidView(factory = { ctx -> PlayerView(ctx).apply { this.player = player; useController = true } },
+        update = { it.player = player },
+        modifier = Modifier.fillMaxWidth().height(72.dp).background(Color(0xFFEDE9FF), RoundedCornerShape(12.dp)))
 }
 
 @Composable
