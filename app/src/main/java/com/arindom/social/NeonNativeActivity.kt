@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arindom.social.data.auth.AuthRepository
 import com.arindom.social.data.posts.FirebasePostRepository
+import com.arindom.social.data.posts.CloudPost
 import com.google.firebase.FirebaseApp
 
 private val NeonBackground = Color(0xFF080914)
@@ -85,6 +90,17 @@ private fun NeonApp(auth: AuthRepository, posts: FirebasePostRepository) {
     var caption by remember { mutableStateOf("") }
     var isBusy by remember { mutableStateOf(false) }
     val currentUser = auth.currentUser
+    var cloudPosts by remember { mutableStateOf<List<CloudPost>>(emptyList()) }
+
+    DisposableEffect(auth.isConfigured) {
+        val stopObserving = if (auth.isConfigured) {
+            posts.observeRecentPosts(
+                onPosts = { cloudPosts = it },
+                onError = { error -> status = "Feed unavailable: ${error.message ?: "check Firestore rules and indexes."}" }
+            )
+        } else null
+        onDispose { stopObserving?.invoke() }
+    }
 
     Scaffold(
         containerColor = NeonBackground,
@@ -128,12 +144,30 @@ private fun NeonApp(auth: AuthRepository, posts: FirebasePostRepository) {
         ) {
             when (page) {
                 "Home" -> {
-                    Text("YOUR WORLD · YOUR RULES", color = NeonLime, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                    Text("Discover your universe.", color = NeonText, fontSize = 32.sp, lineHeight = 36.sp, fontWeight = FontWeight.Black)
-                    Text("A native Android foundation for the next generation of social.", color = NeonMuted)
-                    StatusCard(status)
-                    FeatureCard("Your feed", "Cloud posts will appear here after Firebase is configured and the first account signs in.")
-                    FeatureCard("Creator space", "The existing prototype is preserved in the repository while the native app becomes the production foundation.")
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            Text("YOUR WORLD · YOUR RULES", color = NeonLime, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                            Text("Discover your universe.", color = NeonText, fontSize = 32.sp, lineHeight = 36.sp, fontWeight = FontWeight.Black)
+                            Text("Your community, live.", color = NeonMuted)
+                            StatusCard(status)
+                            Text("LATEST POSTS", color = NeonLime, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.8.sp, modifier = Modifier.padding(top = 8.dp))
+                        }
+                        if (cloudPosts.isEmpty()) {
+                            item {
+                                FeatureCard(
+                                    "No cloud posts yet",
+                                    if (auth.isConfigured) "Be the first to publish a text post. New posts from the community will appear here automatically."
+                                    else "Connect Firebase and sign in to load the live community feed."
+                                )
+                            }
+                        } else {
+                            items(cloudPosts, key = { it.id }) { post -> CloudPostCard(post) }
+                        }
+                    }
                 }
                 "Explore" -> {
                     PageTitle("Explore", "Find creators, topics and communities.")
@@ -227,6 +261,32 @@ private fun FeatureCard(title: String, description: String) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Text(title, color = NeonText, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text(description, color = NeonMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 7.dp))
+        }
+    }
+}
+
+@Composable
+private fun CloudPostCard(post: CloudPost) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = NeonPanel),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                "CREATOR · ${post.authorUid.take(8)}",
+                color = NeonLime,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Text(post.caption, color = NeonText, fontSize = 15.sp, modifier = Modifier.padding(top = 9.dp))
+            Text(
+                post.createdAt?.toDate()?.toString()?.take(16) ?: "Just posted",
+                color = NeonMuted,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 10.dp)
+            )
         }
     }
 }
