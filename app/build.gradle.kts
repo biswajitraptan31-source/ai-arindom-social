@@ -12,8 +12,8 @@ android {
         applicationId = "com.arindom.social"
         minSdk = 23
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "3.0"
     }
 
     compileOptions {
@@ -21,10 +21,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
+    kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
 }
 
