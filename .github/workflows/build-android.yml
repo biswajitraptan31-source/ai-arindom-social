@@ -3,7 +3,7 @@ name: Build Arindom Neon X Android
 on:
   workflow_dispatch:
   push:
-    branches: ["main", "feature/production-foundation"]
+    branches: ["main", "feature/production-foundation", "feature/cloud-feed-profiles"]
 
 jobs:
   build:
