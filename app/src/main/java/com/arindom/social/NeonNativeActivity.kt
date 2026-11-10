@@ -27,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
@@ -64,7 +65,7 @@ class NeonNativeActivity : ComponentActivity() {
         val authRepository = AuthRepository(applicationContext)
         val postRepository = FirebasePostRepository(applicationContext)
         setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = darkColorScheme(primary = NeonLime, background = NeonBackground, surface = NeonPanel, onSurface = NeonText, onBackground = NeonText)) {
                 Surface(color = NeonBackground, modifier = Modifier.fillMaxSize()) {
                     NeonApp(authRepository, postRepository)
                 }
