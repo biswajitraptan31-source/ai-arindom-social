@@ -3,6 +3,8 @@ package com.arindom.social.data.auth
 import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FirebaseFirestore
 
 class AuthRepository(context: Context) {
     private val appContext = context.applicationContext
@@ -51,8 +53,25 @@ class AuthRepository(context: Context) {
                     .setDisplayName(displayName.ifBlank { email.substringBefore("@") })
                     .build()
                 user.updateProfile(profile).addOnCompleteListener { profileTask ->
-                    if (profileTask.isSuccessful) callback(Result.success(user.uid))
-                    else callback(Result.failure(profileTask.exception ?: IllegalStateException("Profile setup failed.")))
+                    if (!profileTask.isSuccessful) {
+                        callback(Result.failure(profileTask.exception ?: IllegalStateException("Profile setup failed.")))
+                        return@addOnCompleteListener
+                    }
+                    val name = displayName.ifBlank { email.substringBefore("@") }
+                    val now = Timestamp.now()
+                    val profileData = hashMapOf(
+                        "uid" to user.uid,
+                        "displayName" to name,
+                        "email" to email.trim(),
+                        "createdAt" to now,
+                        "updatedAt" to now
+                    )
+                    FirebaseFirestore.getInstance().collection("users").document(user.uid)
+                        .set(profileData)
+                        .addOnSuccessListener { callback(Result.success(user.uid)) }
+                        .addOnFailureListener { error ->
+                            callback(Result.failure(IllegalStateException("Account created, but profile could not be saved: ${error.message}", error)))
+                        }
                 }
             }
     }
