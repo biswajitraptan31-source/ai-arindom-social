@@ -45,21 +45,34 @@ class NeonActivity : Activity() {
         webView.webViewClient = WebViewClient()
         webView.setBackgroundColor(android.graphics.Color.rgb(7, 8, 17))
         setContentView(webView)
-        // Keep the web app below the Android status bar / front-camera cutout.
+        // Pass system-bar/camera-cutout insets to CSS. Do not pad the
+        // WebView itself: fixed-position bottom navigation ignores that padding.
         webView.setOnApplyWindowInsetsListener { view, insets ->
-            val safeInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val topInset: Int
+            val bottomInset: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val statusTop = insets.getInsets(WindowInsets.Type.statusBars()).top
+                val navBottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom
                 val cutoutTop = insets.displayCutout?.safeInsetTop ?: 0
-                Pair(maxOf(statusTop, cutoutTop), insets.getInsets(WindowInsets.Type.navigationBars()).bottom)
+                topInset = maxOf(statusTop, cutoutTop)
+                bottomInset = navBottom
             } else {
                 @Suppress("DEPRECATION")
-                Pair(insets.systemWindowInsetTop, insets.systemWindowInsetBottom)
+                val statusTop = insets.systemWindowInsetTop
+                @Suppress("DEPRECATION")
+                val navBottom = insets.systemWindowInsetBottom
+                val cutoutTop = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    insets.displayCutout?.safeInsetTop ?: 0
+                } else 0
+                topInset = maxOf(statusTop, cutoutTop)
+                bottomInset = navBottom
             }
-            val topInset = safeInsets.first
-            val bottomInset = safeInsets.second
-            // Reserve both system-bar areas so the app header and bottom tabs
-            // never sit underneath the camera cutout or Android gesture buttons.
-            view.setPadding(0, topInset, 0, bottomInset)
+            view.setPadding(0, 0, 0, 0)
+            view.evaluateJavascript(
+                "document.documentElement.style.setProperty('--native-safe-top', '${topInset}px');" +
+                    "document.documentElement.style.setProperty('--native-safe-bottom', '${bottomInset}px');",
+                null
+            )
             insets
         }
         webView.requestApplyInsets()
