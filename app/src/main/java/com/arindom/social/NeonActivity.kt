@@ -68,7 +68,7 @@ class NeonActivity : Activity() {
                 bottomInset = navBottom
             }
             view.setPadding(0, 0, 0, 0)
-            view.evaluateJavascript(
+            webView.evaluateJavascript(
                 "document.documentElement.style.setProperty('--native-safe-top', '${topInset}px');" +
                     "document.documentElement.style.setProperty('--native-safe-bottom', '${bottomInset}px');",
                 null
