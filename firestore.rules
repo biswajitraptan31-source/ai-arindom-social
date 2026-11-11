@@ -21,8 +21,9 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() <= 2200;
       allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == resource.data.uid;
+        && request.resource.data.uid == resource.data.uid
+        && (resource.data.uid == request.auth.uid
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy', 'savedBy']));
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
 
       match /comments/{commentId} {
