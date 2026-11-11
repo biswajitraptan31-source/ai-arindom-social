@@ -47,20 +47,16 @@ class NeonActivity : Activity() {
         setContentView(webView)
         // Keep the web app below the Android status bar / front-camera cutout.
         webView.setOnApplyWindowInsetsListener { view, insets ->
-            val topInset: Int
-            val bottomInset: Int
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val safeInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val statusTop = insets.getInsets(WindowInsets.Type.statusBars()).top
                 val cutoutTop = insets.displayCutout?.safeInsetTop ?: 0
-                topInset = maxOf(statusTop, cutoutTop)
-                bottomInset = insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+                Pair(maxOf(statusTop, cutoutTop), insets.getInsets(WindowInsets.Type.navigationBars()).bottom)
             } else {
                 @Suppress("DEPRECATION")
-                run {
-                    topInset = insets.systemWindowInsetTop
-                    bottomInset = insets.systemWindowInsetBottom
-                }
+                Pair(insets.systemWindowInsetTop, insets.systemWindowInsetBottom)
             }
+            val topInset = safeInsets.first
+            val bottomInset = safeInsets.second
             // Reserve both system-bar areas so the app header and bottom tabs
             // never sit underneath the camera cutout or Android gesture buttons.
             view.setPadding(0, topInset, 0, bottomInset)
