@@ -109,7 +109,7 @@ $("#authForgot").onclick=async()=>{
   $("#authError").style.color="";
   const email=$("#authEmail").value.trim();
   if(!email){authError("Enter your email address first.");$("#authEmail").focus();return}
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){authError("Please enter a valid email address.");$("#authEmail").focus();return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authError("Please enter a valid email address.");$("#authEmail").focus();return}
   const button=$("#authForgot");
   button.disabled=true;
   button.textContent="Sending reset email…";
