@@ -50,8 +50,8 @@ class NeonActivity : Activity() {
                 // Reapply insets after the page exists; the first inset callback
                 // can happen before WebView has finished loading its HTML.
                 webView.evaluateJavascript(
-                    "document.documentElement.style.setProperty('--native-safe-top', '${safeTopInset}px');" +
-                        "document.documentElement.style.setProperty('--native-safe-bottom', '${safeBottomInset}px');",
+                    "document.documentElement.style.setProperty('--native-safe-top', '\${safeTopInset}px');" +
+                        "document.documentElement.style.setProperty('--native-safe-bottom', '\${safeBottomInset}px');",
                     null
                 )
             }
