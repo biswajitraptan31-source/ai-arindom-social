@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -43,6 +45,18 @@ class NeonActivity : Activity() {
         webView.webViewClient = WebViewClient()
         webView.setBackgroundColor(android.graphics.Color.rgb(7, 8, 17))
         setContentView(webView)
+        // Keep the web app below the Android status bar / front-camera cutout.
+        webView.setOnApplyWindowInsetsListener { view, insets ->
+            val topInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsets.Type.statusBars()).top
+            } else {
+                @Suppress("DEPRECATION")
+                insets.systemWindowInsetTop
+            }
+            view.setPadding(0, topInset, 0, 0)
+            insets
+        }
+        webView.requestApplyInsets()
         webView.loadUrl("file:///android_asset/www/index.html")
     }
 
