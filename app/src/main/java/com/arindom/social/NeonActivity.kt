@@ -16,6 +16,8 @@ class NeonActivity : Activity() {
     private lateinit var webView: WebView
     private var uploadCallback: ValueCallback<Array<Uri>>? = null
     private val pickMedia = 41
+    private var safeTopInset = 0
+    private var safeBottomInset = 0
 
     @Suppress("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +44,18 @@ class NeonActivity : Activity() {
                 return true
             }
         }
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                // Reapply insets after the page exists; the first inset callback
+                // can happen before WebView has finished loading its HTML.
+                webView.evaluateJavascript(
+                    "document.documentElement.style.setProperty('--native-safe-top', '${safeTopInset}px');" +
+                        "document.documentElement.style.setProperty('--native-safe-bottom', '${safeBottomInset}px');",
+                    null
+                )
+            }
+        }
         webView.setBackgroundColor(android.graphics.Color.rgb(7, 8, 17))
         setContentView(webView)
         // Pass system-bar/camera-cutout insets to CSS. Do not pad the
@@ -67,6 +80,8 @@ class NeonActivity : Activity() {
                 topInset = maxOf(statusTop, cutoutTop)
                 bottomInset = navBottom
             }
+            safeTopInset = topInset
+            safeBottomInset = bottomInset
             view.setPadding(0, 0, 0, 0)
             webView.evaluateJavascript(
                 "document.documentElement.style.setProperty('--native-safe-top', '${topInset}px');" +
