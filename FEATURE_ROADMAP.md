@@ -31,6 +31,30 @@ This file tracks the complete product scope. A feature is **not complete** until
 - [ ] Content moderation — report queues, moderation states, automated checks and human review path
 - [ ] Multiple languages — translated interface strings, language selector and locale-aware dates/numbers
 
+## Instagram-inspired additions (requested 2026-11-12)
+
+### Community and sharing
+- [ ] Notes — 60-character updates, 24-hour expiry, friend inbox display and replies through DMs. Initial UI and Firestore client code added; deploy rules and test cross-account behavior before marking complete.
+- [ ] Broadcast Channels — creator-owned channels, follower subscriptions, admin/moderator roles, announcements, reactions and channel moderation.
+- [ ] Reposts — repost public posts/Reels with original-author attribution, repost feed/profile tab, undo and privacy/block enforcement.
+- [ ] Collaborative Posts — invite co-authors, accept/decline invitations, shared attribution and engagement, author permissions and removal workflow.
+- [ ] Story Highlights — create/edit/delete named profile collections, add/remove archived Stories, cover images and visibility controls.
+- [ ] Close Friends — private audience list, green-ring indicator, server-enforced Story audience filtering and list management.
+- [ ] Reels Remix and Templates — remix permissions, original-source attribution, split-screen/reaction layouts, reusable edit templates and licensed audio checks.
+
+### Creator, commerce and messaging
+- [ ] Professional Dashboard — real creator metrics for reach, views, interactions, audience growth and content performance.
+- [ ] Creator Monetization — eligibility checks, subscriptions, gifts, exclusive content, payout provider and tax/compliance workflow; availability depends on supported markets/providers.
+- [ ] Shopping — product catalogs, product tagging, creator affiliate disclosures, merchant checkout links and commerce moderation.
+- [ ] Advanced DM Tools — polls, pinned conversations/messages, GIF/sticker support, quick replies and notification preferences.
+- [ ] Friends Map — opt-in, time-limited location sharing with granular audience, revoke controls, expiry and privacy-first defaults. Never expose location without explicit consent.
+
+## Implementation status and acceptance gates
+- Notes is the first Instagram-inspired feature started in code: UI, Firestore create/read/update/delete calls and draft security rules are in the repository. It is **not verified live** until the rules are published to Firebase and two-account/expiry tests pass.
+- Stories security rules have also been added to the repository; publishing them to the Firebase project and testing media uploads/viewer/reaction flows are still required.
+- All other Instagram-inspired additions above remain planned, not shipped. No placeholder UI should be counted as implementation.
+- Each feature must include data model, authenticated server-side authorization, user-facing states, abuse/privacy handling, tests and Android APK regression build before being marked complete.
+
 ## Required platform work
 - [ ] Media hosting for images, audio and video with upload limits and secure access
 - [ ] Trusted backend/API for privileged actions and AI provider credentials (never put secret keys in the Android/Web client)
