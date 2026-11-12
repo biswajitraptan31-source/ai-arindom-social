@@ -29,5 +29,5 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FIREBASE_API_KEY: "AIzaSyAEMV_A0r-VrSaYXOfnqL0FkTgiltkgefE"
           NEON_AI_EMAIL: ${{ secrets.NEON_AI_EMAIL }}
-          NEON_AI_PASSWORD: ${{ secrets.NEON_AI_PASSWORD }}
+          NEON_AI_PASSWORD: ${{ secrets.NEON_BOT_PASSWORD }}
         run: node scripts/neon-ai-hourly-post.mjs
