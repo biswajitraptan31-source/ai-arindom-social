@@ -20,7 +20,8 @@ async function requestJson(url, body, headers = {}) {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60000)
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -66,7 +67,7 @@ async function generateText() {
         lastError = error;
         const message = String(error.message || error);
         const temporary = /HTTP (429|500|502|503|504)/.test(message) ||
-          /high demand|temporar|overloaded|unavailable/i.test(message);
+          /high demand|temporar|overloaded|unavailable|fetch failed|timeout|UND_ERR/i.test(message);
         if (!temporary) throw error;
         if (attempt < 3) {
           const waitMs = attempt * 4000;
