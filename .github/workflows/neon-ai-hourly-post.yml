@@ -30,10 +30,10 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-dejavu-core
       - name: Generate and publish alternating AI text/video post
         env:
-          GEMINI_API_KEY: \${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FIREBASE_API_KEY: "AIzaSyAEMV_A0r-VrSaYXOfnqL0FkTgiltkgefE"
-          NEON_AI_EMAIL: \${{ secrets.NEON_AI_EMAIL }}
-          NEON_BOT_PASSWORD: \${{ secrets.NEON_BOT_PASSWORD }}
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: \${{ github.repository }}
+          NEON_AI_EMAIL: ${{ secrets.NEON_AI_EMAIL }}
+          NEON_BOT_PASSWORD: ${{ secrets.NEON_BOT_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/neon-ai-hourly-post.mjs
