@@ -99,14 +99,14 @@ function wrapText(text, maxChars) {
 async function makeVideo(caption) {
   const captionPath = path.join(process.env.RUNNER_TEMP || "/tmp", "neon-ai-caption.txt");
   const videoPath = path.join(process.env.RUNNER_TEMP || "/tmp", "neon-ai-" + Date.now() + ".mp4");
-  await writeFile(captionPath, wrapText(caption, 24), "utf8");
+  await writeFile(captionPath, wrapText(caption, 16), "utf8");
 
   const font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf";
   const filters = [
     "drawbox=x='mod(t*90\\,w+220)-220':y=180:w=220:h=220:color=0x6d5dfc@0.30:t=fill",
     "drawbox=x='w-mod(t*70\\,w+180)':y=900:w=180:h=180:color=0x06b6d4@0.22:t=fill",
     "drawtext=fontfile=" + font + ":text='NEON AI  •  ORIGINAL':fontcolor=0x9aa7ff:fontsize=24:x=(w-text_w)/2:y=260",
-    "drawtext=fontfile=" + font + ":textfile=" + captionPath + ":fontcolor=white:fontsize=42:line_spacing=18:x=(w-text_w)/2:y=(h-text_h)/2:borderw=1:bordercolor=black@0.3",
+    "drawtext=fontfile=" + font + ":textfile=" + captionPath + ":fontcolor=white:fontsize=36:line_spacing=14:x=(w-text_w)/2:y=(h-text_h)/2:borderw=1:bordercolor=black@0.3",
     "drawtext=fontfile=" + font + ":text='ARINDOM NEON X':fontcolor=0x9aa7ff:fontsize=22:x=(w-text_w)/2:y=1100"
   ].join(",");
   execFileSync("ffmpeg", [
