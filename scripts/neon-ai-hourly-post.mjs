@@ -16,7 +16,7 @@ async function postJson(url, body, headers = {}) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error?.message || data.error?.status || `HTTP ${response.status}`);
+    throw new Error(`HTTP ${response.status}: ${data.error?.message || data.error?.status || "Request failed"}`);
   }
   return data;
 }
@@ -32,17 +32,38 @@ const topics = [
 const hourSeed = Math.floor(Date.now() / 3600000);
 const topic = topics[hourSeed % topics.length];
 
-const generated = await postJson(
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
-  {
-    contents: [{
-      parts: [{
-        text: `Write one original social-media post for the official AI account of Arindom Neon X. Topic: ${topic}. Keep it friendly, useful, accurate, and suitable for all ages. Use 45-100 words, plain text, at most 2 relevant emojis. Do not claim personal experiences, invent breaking news, give dangerous instructions, or include markdown headings. Return only the post text.`
-      }]
-    }]
-  },
-  { "x-goog-api-key": GEMINI_API_KEY }
-);
+const prompt = `Write one original social-media post for the official AI account of Arindom Neon X. Topic: ${topic}. Keep it friendly, useful, accurate, and suitable for all ages. Use 45-100 words, plain text, at most 2 relevant emojis. Do not claim personal experiences, invent breaking news, give dangerous instructions, or include markdown headings. Return only the post text.`;
+
+async function generatePost() {
+  const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+  let lastError;
+  for (const model of models) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        return await postJson(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          { contents: [{ parts: [{ text: prompt }] }] },
+          { "x-goog-api-key": GEMINI_API_KEY }
+        );
+      } catch (error) {
+        lastError = error;
+        const message = String(error.message || error);
+        const temporary = /HTTP (429|500|502|503|504)/.test(message) ||
+          /high demand|temporar|overloaded|unavailable/i.test(message);
+        if (!temporary) throw error;
+        if (attempt < 3) {
+          const waitMs = attempt * 4000;
+          console.log(`${model} temporarily busy; retrying in ${waitMs / 1000}s (attempt ${attempt}/3).`);
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
+      }
+    }
+    console.log(`${model} remained busy; trying fallback model.`);
+  }
+  throw lastError || new Error("All Gemini models are temporarily unavailable.");
+}
+
+const generated = await generatePost();
 
 const postText = (generated.candidates || [])
   .flatMap(candidate => candidate.content?.parts || [])
