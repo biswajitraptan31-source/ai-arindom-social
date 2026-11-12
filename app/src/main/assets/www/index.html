@@ -116,7 +116,58 @@ async function openComments(p){activePost=p;let list=[];try{const d=await fsCall
 $("#modalClose").onclick=closeModal;$("#modalBackdrop").onclick=e=>{if(e.target.id==="modalBackdrop")closeModal()};document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 $("#logout").onclick=()=>{localStorage.removeItem("neonx_auth");if(currentAuth)localStorage.setItem("neonx_accounts",JSON.stringify(getSavedAccounts().filter(x=>x.localId!==currentAuth.localId)));currentAuth=null;setAuthMode("login");showAuthGate(true);toast("Logged out")};
 $("#notifications").onclick=()=>openModal("Notifications",'<div class="empty">You’re all caught up. New activity will appear here when notifications are connected.</div>');
-$("#stories").onclick=e=>{if(e.target.closest(".story"))openModal("Stories preview",'<div class="empty">Story uploads and 24-hour publishing need the cloud service.</div>')};
+
+async function loadNeonStories(){
+ if(!currentAuth)return;
+ const box=$("#stories");box.innerHTML='<div class="story" id="addStory"><div class="ring"><div class="face">＋</div></div>Your story</div>';
+ try{
+  const result=await fsCall(":runQuery",{method:"POST",body:JSON.stringify({structuredQuery:{from:[{collectionId:"stories"}],orderBy:[{field:{fieldPath:"createdAt"},direction:"DESCENDING"}],limit:100}})});
+  const now=Date.now(),items=(result||[]).filter(x=>x.document).map(x=>fsDoc(x.document)).filter(x=>x.expiresAt&&new Date(x.expiresAt).getTime()>now);
+  for(const story of items){
+   if(story.uid===currentAuth.localId)continue;
+   const node=document.createElement("div");node.className="story";node.dataset.storyId=story.id;
+   const initials=(story.user||"N").trim().charAt(0).toUpperCase();
+   node.innerHTML='<div class="ring"><div class="face">'+esc(initials)+'</div></div>'+esc(story.user||"Neon X user");
+   box.appendChild(node);
+  }
+ }catch(e){setChatStatus("Stories unavailable: "+e.message,true)}
+}
+async function createNeonStory(){
+ if(!currentAuth){toast("Log in to share a story.");return}
+ openModal("Create a 24-hour story",'<textarea id="storyText" maxlength="220" placeholder="Share a moment…" style="width:100%;min-height:90px;background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;font:inherit"></textarea><label class="upload" style="display:block;margin:12px 0">＋ Add photo or video <input id="storyFile" type="file" accept="image/*,video/*" hidden></label><small id="storyFileName" class="sub">Media is optional. Text-only stories work without Storage.</small><button class="primary" id="publishStory" style="width:100%;margin-top:16px">Share story · 24 hours</button>');
+ $("#storyFile").onchange=e=>$("#storyFileName").textContent=e.target.files?.[0]?.name||"No media selected";
+ $("#publishStory").onclick=async()=>{
+  const text=$("#storyText").value.trim(),file=$("#storyFile").files?.[0],btn=$("#publishStory");
+  if(!text&&!file){toast("Write something or choose media.");return}
+  if(file&&!/^(image|video)\//.test(file.type)){toast("Choose an image or video.");return}
+  btn.disabled=true;btn.textContent="Publishing…";
+  try{
+   let mediaUrl="",mediaType="";
+   if(file){const ext=(file.name.split(".").pop()||"bin").toLowerCase().replace(/[^a-z0-9]/g,"");mediaUrl=await uploadCloudFile("stories/"+currentAuth.localId+"/"+Date.now()+"."+ext,file,file.type);mediaType=file.type}
+   const createdAt=new Date(),expiresAt=new Date(createdAt.getTime()+86400000);
+   await fsCall("/stories",{method:"POST",body:JSON.stringify({fields:{uid:fsV(currentAuth.localId),user:fsV(currentAuth.displayName||"Neon X user"),username:fsV(currentAuth.username||""),text:fsV(text),mediaUrl:fsV(mediaUrl),mediaType:fsV(mediaType),viewers:fsV([]),reactions:fsV({}),createdAt:fsV(createdAt.toISOString()),expiresAt:fsV(expiresAt.toISOString())}})});
+   closeModal();await loadNeonStories();toast("Your story is live for 24 hours!");
+  }catch(err){toast("Story not published: "+err.message)}
+  finally{btn.disabled=false;btn.textContent="Share story · 24 hours"}
+ };
+}
+async function viewNeonStory(id){
+ try{
+  const story=fsDoc(await fsCall("/stories/"+encodeURIComponent(id)));
+  if(!story.expiresAt||new Date(story.expiresAt).getTime()<=Date.now()){toast("This story has expired.");await loadNeonStories();return}
+  const viewers=Array.isArray(story.viewers)?story.viewers:[];
+  if(!viewers.includes(currentAuth.localId)&&story.uid!==currentAuth.localId){
+   const next=[...viewers,currentAuth.localId];
+   await fsCall("/stories/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({fields:{viewers:fsV(next)}})});
+   story.viewers=next;
+  }
+  const media=story.mediaUrl?(String(story.mediaType||"").startsWith("video/")?'<video controls playsinline style="width:100%;max-height:48vh;border-radius:14px"><source src="'+esc(story.mediaUrl)+'" type="'+esc(story.mediaType)+'"></video>':'<img alt="Story" src="'+esc(story.mediaUrl)+'" style="width:100%;max-height:48vh;object-fit:contain;border-radius:14px">'):"";
+  openModal((story.user||"Neon X user")+"'s story",'<div style="display:grid;gap:12px">'+media+'<p style="white-space:pre-wrap">'+esc(story.text||"")+'</p><small class="sub">Expires '+new Date(story.expiresAt).toLocaleString()+'</small><div style="display:flex;gap:8px;align-items:center"><button class="primary" id="storyReact">💚 React</button><small class="sub">'+(story.viewers||[]).length+' views</small></div></div>');
+  $("#storyReact").onclick=async()=>{try{const r={...(story.reactions||{}),[currentAuth.localId]:"💚"};await fsCall("/stories/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({fields:{reactions:fsV(r)}})});toast("Reaction sent!")}catch(e){toast("Reaction failed: "+e.message)}};
+ }catch(e){toast("Could not open story: "+e.message)}
+}
+$("#stories").onclick=e=>{if(e.target.closest("#addStory"))createNeonStory();else{const item=e.target.closest("[data-story-id]");if(item)viewNeonStory(item.dataset.storyId)}};
+
 
 
 /* Firebase Authentication via Firebase Identity Toolkit REST API */
@@ -171,9 +222,9 @@ $("#authForgot").onclick=async()=>{
     button.textContent="Forgot password?";
   }
 };
-async function initAuth(){try{const saved=JSON.parse(localStorage.getItem("neonx_auth")||"null");if(!saved?.refreshToken){showAuthGate(true);return}if(saved.expiresAt>Date.now()+60000){currentAuth=saved;$("#profile h2").textContent=saved.displayName||saved.email;showAuthGate(false);loadSavedProfile().then(()=>saveNeonProfile()).then(loadChats).then(loadCloudPosts).catch(e=>setChatStatus(e.message,true));return}const body=new URLSearchParams({grant_type:"refresh_token",refresh_token:saved.refreshToken});const response=await fetch("https://securetoken.googleapis.com/v1/token?key="+FIREBASE_API_KEY,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});const data=await response.json();if(!response.ok)throw new Error("Session expired");currentAuth={...saved,idToken:data.id_token,refreshToken:data.refresh_token,expiresAt:Date.now()+Number(data.expires_in||3600)*1000};localStorage.setItem("neonx_auth",JSON.stringify(currentAuth));storeAccount(currentAuth);$("#profile h2").textContent=currentAuth.displayName||currentAuth.email;showAuthGate(false);loadSavedProfile().then(()=>saveNeonProfile()).then(loadChats).then(loadCloudPosts).catch(e=>setChatStatus(e.message,true))}catch(_){localStorage.removeItem("neonx_auth");showAuthGate(true)}}
+async function initAuth(){try{const saved=JSON.parse(localStorage.getItem("neonx_auth")||"null");if(!saved?.refreshToken){showAuthGate(true);return}if(saved.expiresAt>Date.now()+60000){currentAuth=saved;$("#profile h2").textContent=saved.displayName||saved.email;showAuthGate(false);loadSavedProfile().then(()=>saveNeonProfile()).then(loadChats).then(loadCloudPosts).then(loadNeonStories).catch(e=>setChatStatus(e.message,true));return}const body=new URLSearchParams({grant_type:"refresh_token",refresh_token:saved.refreshToken});const response=await fetch("https://securetoken.googleapis.com/v1/token?key="+FIREBASE_API_KEY,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});const data=await response.json();if(!response.ok)throw new Error("Session expired");currentAuth={...saved,idToken:data.id_token,refreshToken:data.refresh_token,expiresAt:Date.now()+Number(data.expires_in||3600)*1000};localStorage.setItem("neonx_auth",JSON.stringify(currentAuth));storeAccount(currentAuth);$("#profile h2").textContent=currentAuth.displayName||currentAuth.email;showAuthGate(false);loadSavedProfile().then(()=>saveNeonProfile()).then(loadChats).then(loadCloudPosts).catch(e=>setChatStatus(e.message,true))}catch(_){localStorage.removeItem("neonx_auth");showAuthGate(true)}}
 
-function openAccountSwitcher(){const accounts=getSavedAccounts();const rows=accounts.map(a=>{const photo=a.photoUrl||a.photoData||"";const avatar=photo?`<img src="${esc(photo)}" alt="">`:esc((a.displayName||a.email||"N").charAt(0).toUpperCase());const active=a.localId===currentAuth?.localId;return `<button class="account-item" type="button" data-switch-uid="${esc(a.localId)}"><div class="avatar">${avatar}</div><div class="who"><b>${esc(a.displayName||a.email||"Neon X user")}</b><small>${esc(a.email||"")}</small></div>${active?'<span class="active-tag">ACTIVE ✓</span>':""}</button>`}).join("");openModal("Switch account",`<div class="account-list">${rows||'<div class="empty">No saved accounts yet.</div>'}<button class="account-add" id="addNeonAccount" type="button">＋ Add account</button></div>`);$("#modalBody").querySelectorAll("[data-switch-uid]").forEach(b=>b.onclick=()=>activateSavedAccount(b.dataset.switchUid));$("#addNeonAccount").onclick=()=>{closeModal();if(currentAuth)storeAccount(currentAuth);setAuthMode("login");$("#authEmail").value="";$("#authPassword").value="";showAuthGate(true);toast("Log in or create another account.")}}\nasync function activateSavedAccount(uid){const account=getSavedAccounts().find(a=>a.localId===uid);if(!account)return;try{let active={...account};if(!active.expiresAt||active.expiresAt<Date.now()+60000){const body=new URLSearchParams({grant_type:"refresh_token",refresh_token:active.refreshToken});const response=await fetch("https://securetoken.googleapis.com/v1/token?key="+FIREBASE_API_KEY,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});const data=await response.json();if(!response.ok)throw Error("This account session expired. Please add it again.");active={...active,idToken:data.id_token,refreshToken:data.refresh_token,expiresAt:Date.now()+Number(data.expires_in||3600)*1000}}currentAuth=active;localStorage.setItem("neonx_auth",JSON.stringify(active));storeAccount(active);closeModal();applyProfile();showAuthGate(false);await loadSavedProfile();await saveNeonProfile();await loadChats();await loadCloudPosts();go("profile");toast("Switched account successfully!")}catch(e){toast(e.message||"Could not switch account.")}}\n$("#switchAccount").onclick=openAccountSwitcher;\nsetAuthMode("login"); // Bind the initial Create Account / Log in switch.
+function openAccountSwitcher(){const accounts=getSavedAccounts();const rows=accounts.map(a=>{const photo=a.photoUrl||a.photoData||"";const avatar=photo?`<img src="${esc(photo)}" alt="">`:esc((a.displayName||a.email||"N").charAt(0).toUpperCase());const active=a.localId===currentAuth?.localId;return `<button class="account-item" type="button" data-switch-uid="${esc(a.localId)}"><div class="avatar">${avatar}</div><div class="who"><b>${esc(a.displayName||a.email||"Neon X user")}</b><small>${esc(a.email||"")}</small></div>${active?'<span class="active-tag">ACTIVE ✓</span>':""}</button>`}).join("");openModal("Switch account",`<div class="account-list">${rows||'<div class="empty">No saved accounts yet.</div>'}<button class="account-add" id="addNeonAccount" type="button">＋ Add account</button></div>`);$("#modalBody").querySelectorAll("[data-switch-uid]").forEach(b=>b.onclick=()=>activateSavedAccount(b.dataset.switchUid));$("#addNeonAccount").onclick=()=>{closeModal();if(currentAuth)storeAccount(currentAuth);setAuthMode("login");$("#authEmail").value="";$("#authPassword").value="";showAuthGate(true);toast("Log in or create another account.")}}\nasync function activateSavedAccount(uid){const account=getSavedAccounts().find(a=>a.localId===uid);if(!account)return;try{let active={...account};if(!active.expiresAt||active.expiresAt<Date.now()+60000){const body=new URLSearchParams({grant_type:"refresh_token",refresh_token:active.refreshToken});const response=await fetch("https://securetoken.googleapis.com/v1/token?key="+FIREBASE_API_KEY,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});const data=await response.json();if(!response.ok)throw Error("This account session expired. Please add it again.");active={...active,idToken:data.id_token,refreshToken:data.refresh_token,expiresAt:Date.now()+Number(data.expires_in||3600)*1000}}currentAuth=active;localStorage.setItem("neonx_auth",JSON.stringify(active));storeAccount(active);closeModal();applyProfile();showAuthGate(false);await loadSavedProfile();await saveNeonProfile();await loadChats();await loadCloudPosts();await loadNeonStories();go("profile");toast("Switched account successfully!")}catch(e){toast(e.message||"Could not switch account.")}}\n$("#switchAccount").onclick=openAccountSwitcher;\nsetAuthMode("login"); // Bind the initial Create Account / Log in switch.
 initAuth();
 render();
 window.addEventListener("load",()=>setTimeout(()=>document.getElementById("launchSplash")?.classList.add("done"),1250));
