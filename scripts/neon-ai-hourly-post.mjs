@@ -2,7 +2,7 @@ const PROJECT_ID = "arindom-neon-x";
 const API_KEY = process.env.FIREBASE_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const BOT_EMAIL = process.env.NEON_AI_EMAIL;
-const BOT_PASSWORD = process.env.NEON_AI_PASSWORD;
+const BOT_PASSWORD = process.env.NEON_BOT_PASSWORD;
 
 for (const [name, value] of Object.entries({API_KEY, GEMINI_API_KEY, BOT_EMAIL, BOT_PASSWORD})) {
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
