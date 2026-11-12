@@ -33,20 +33,22 @@ const hourSeed = Math.floor(Date.now() / 3600000);
 const topic = topics[hourSeed % topics.length];
 
 const generated = await postJson(
-  "https://generativelanguage.googleapis.com/v1/interactions",
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
   {
-    model: "gemini-3.8-flash",
-    input: `Write one original social-media post for the official AI account of Arindom Neon X. Topic: ${topic}. Keep it friendly, useful, accurate, and suitable for all ages. Use 45-100 words, plain text, at most 2 relevant emojis. Do not claim personal experiences, invent breaking news, give dangerous instructions, or include markdown headings. Return only the post text.`
+    contents: [{
+      parts: [{
+        text: `Write one original social-media post for the official AI account of Arindom Neon X. Topic: ${topic}. Keep it friendly, useful, accurate, and suitable for all ages. Use 45-100 words, plain text, at most 2 relevant emojis. Do not claim personal experiences, invent breaking news, give dangerous instructions, or include markdown headings. Return only the post text.`
+      }]
+    }]
   },
   { "x-goog-api-key": GEMINI_API_KEY }
 );
 
-const postText = (generated.steps || [])
-  .filter(step => step.type === "model_output")
-  .flatMap(step => step.content || [])
-  .filter(part => part.type === "text" && typeof part.text === "string")
+const postText = (generated.candidates || [])
+  .flatMap(candidate => candidate.content?.parts || [])
+  .filter(part => typeof part.text === "string")
   .map(part => part.text)
-  .join("\n")
+  .join("\\n")
   .trim();
 
 if (!postText || postText.length > 2200) {
