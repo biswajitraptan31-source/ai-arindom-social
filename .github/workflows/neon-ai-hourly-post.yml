@@ -1,0 +1,33 @@
+name: Neon AI hourly posts
+
+on:
+  schedule:
+    # Every hour at :45 UTC (:15 India Standard Time).
+    - cron: "45 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-ai-hourly-post
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate and publish one AI post
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FIREBASE_API_KEY: "AIzaSyAEMV_A0r-VrSaYXOfnqL0FkTgiltkgefE"
+          NEON_AI_EMAIL: ${{ secrets.NEON_AI_EMAIL }}
+          NEON_AI_PASSWORD: ${{ secrets.NEON_AI_PASSWORD }}
+        run: node scripts/neon-ai-hourly-post.mjs
