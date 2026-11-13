@@ -40,7 +40,7 @@ jobs:
           echo "[ARINDOM] $(date -Is) Installing live-build toolchain"
           timeout --signal=TERM --kill-after=60s 60m env DEBIAN_FRONTEND=noninteractive apt-get install -y \
             live-build debootstrap debian-archive-keyring xorriso squashfs-tools \
-            grub-pc-bin grub-efi-amd64-bin mtools dosfstools ca-certificates
+            grub-pc-bin grub-efi-amd64-bin mtools dosfstools ca-certificates imagemagick
 
           echo "[ARINDOM] $(date -Is) Configuring Debian Trixie live image"
           lb config \
@@ -103,6 +103,123 @@ jobs:
           unzip
           xz-utils
           PACKAGES
+
+          # ARINDOM visual identity: dark violet wallpaper, login background,
+          # OS identity, and a custom Plymouth boot splash.
+          mkdir -p config/includes.chroot/usr/share/backgrounds/arindom
+          mkdir -p config/includes.chroot/usr/share/plymouth/themes/arindom
+          mkdir -p config/includes.chroot/usr/share/pixmaps
+          mkdir -p config/includes.chroot/etc/plymouth
+          mkdir -p config/includes.chroot/etc/lightdm
+          mkdir -p config/includes.chroot/etc/xdg/xfce4/xfconf/xfce-perchannel-xml
+          mkdir -p config/hooks/live
+
+          cat > /tmp/arindom-wallpaper.svg <<'WALLPAPER'
+          <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#05030b"/><stop offset=".55" stop-color="#130925"/><stop offset="1" stop-color="#260b45"/></linearGradient>
+              <radialGradient id="glow"><stop stop-color="#9b4dff" stop-opacity=".55"/><stop offset="1" stop-color="#9b4dff" stop-opacity="0"/></radialGradient>
+              <linearGradient id="violet"><stop stop-color="#d9b8ff"/><stop offset="1" stop-color="#8b35ff"/></linearGradient>
+            </defs>
+            <rect width="1920" height="1080" fill="url(#bg)"/>
+            <circle cx="1450" cy="430" r="600" fill="url(#glow)"/>
+            <path d="M0 870 Q480 650 920 900 T1920 780 V1080 H0Z" fill="#6b20a8" opacity=".12"/>
+            <path d="M0 930 Q560 760 1060 960 T1920 850" fill="none" stroke="#a45cff" stroke-opacity=".22" stroke-width="2"/>
+            <g transform="translate(960 430)" text-anchor="middle">
+              <path d="M0 -170 L145 95 H85 L0 -65 L-85 95 H-145Z" fill="none" stroke="url(#violet)" stroke-width="17" stroke-linejoin="round"/>
+              <path d="M-55 28 H55" stroke="#e5d1ff" stroke-width="12" stroke-linecap="round"/>
+              <text y="190" fill="#fff" font-family="DejaVu Sans, sans-serif" font-size="92" font-weight="700" letter-spacing="8">ARINDOM OS</text>
+              <text y="252" fill="#c9a5f5" font-family="DejaVu Sans, sans-serif" font-size="30" letter-spacing="12">SMOOTH EDITION</text>
+            </g>
+          </svg>
+          WALLPAPER
+          cp /tmp/arindom-wallpaper.svg config/includes.chroot/usr/share/backgrounds/arindom/arindom-purple.svg
+          cp /tmp/arindom-wallpaper.svg config/includes.chroot/usr/share/pixmaps/arindom-logo.svg
+          convert -background none -resize 900x500 /tmp/arindom-wallpaper.svg config/includes.chroot/usr/share/plymouth/themes/arindom/logo.png
+
+          cat > config/includes.chroot/usr/share/plymouth/themes/arindom/arindom.plymouth <<'PLYMOUTH'
+          [Plymouth Theme]
+          Name=ARINDOM OS
+          Description=ARINDOM OS Smooth Edition violet boot splash
+          ModuleName=script
+
+          [script]
+          ImageDir=/usr/share/plymouth/themes/arindom
+          ScriptFile=/usr/share/plymouth/themes/arindom/arindom.script
+          PLYMOUTH
+
+          cat > config/includes.chroot/usr/share/plymouth/themes/arindom/arindom.script <<'PLYMOUTH_SCRIPT'
+          bg = Image.Text(" ", 1, 1, 1);
+          Window.SetBackgroundTopColor(0.015, 0.008, 0.035);
+          Window.SetBackgroundBottomColor(0.075, 0.025, 0.14);
+          logo = Image("logo.png");
+          sprite = Sprite(logo);
+          sprite.SetX(Window.GetWidth() / 2 - logo.GetWidth() / 2);
+          sprite.SetY(Window.GetHeight() / 2 - logo.GetHeight() / 2);
+          Plymouth.SetRefreshFunction(
+            fun () {
+              sprite.SetOpacity(0.82 + 0.18 * Math.Sin(Plymouth.GetTime() * 2));
+            }
+          );
+          PLYMOUTH_SCRIPT
+
+          cat > config/includes.chroot/etc/plymouth/plymouthd.conf <<'PLYMOUTH_CONF'
+          [Daemon]
+          Theme=arindom
+          ShowDelay=0
+          PLYMOUTH_CONF
+
+          cat > config/includes.chroot/etc/lightdm/lightdm-gtk-greeter.conf <<'GREETER'
+          [greeter]
+          background=/usr/share/backgrounds/arindom/arindom-purple.svg
+          theme-name=Adwaita-dark
+          icon-theme-name=Adwaita
+          GREETER
+
+          cat > config/includes.chroot/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml <<'XFCE'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xfce4-desktop" version="1.0">
+            <property name="backdrop" type="empty">
+              <property name="screen0" type="empty">
+                <property name="monitor0" type="empty">
+                  <property name="workspace0" type="empty">
+                    <property name="last-image" type="string" value="/usr/share/backgrounds/arindom/arindom-purple.svg"/>
+                    <property name="image-style" type="int" value="5"/>
+                  </property>
+                </property>
+              </property>
+            </property>
+          </channel>
+          XFCE
+
+          cat > config/includes.chroot/etc/os-release <<'OS_RELEASE'
+          PRETTY_NAME="ARINDOM OS Smooth Edition"
+          NAME="ARINDOM OS"
+          VERSION="1.0 (Smooth Edition)"
+          VERSION_ID="1.0"
+          ID=arindom
+          ID_LIKE=debian
+          HOME_URL="https://github.com/biswajitraptan31-source/ai-arindom-social"
+          SUPPORT_URL="https://github.com/biswajitraptan31-source/ai-arindom-social/issues"
+          BUG_REPORT_URL="https://github.com/biswajitraptan31-source/ai-arindom-social/issues"
+          OS_RELEASE
+          printf 'ARINDOM OS Smooth Edition \\n \\l\n' > config/includes.chroot/etc/issue
+
+          cat > config/hooks/live/0100-arindom-plymouth.hook.chroot <<'HOOK'
+          #!/bin/sh
+          set -e
+          if command -v update-initramfs >/dev/null 2>&1; then
+            update-initramfs -u -k all || true
+          fi
+          HOOK
+          chmod +x config/hooks/live/0100-arindom-plymouth.hook.chroot
+
+          cat > config/bootloaders/grub-pc/grub.cfg <<'GRUB'
+          set default=0
+          set timeout=5
+          set menu_color_normal=white/black
+          set menu_color_highlight=black/light-magenta
+          GRUB
 
           echo "[ARINDOM] $(date -Is) Starting live-build ISO generation"
           timeout --signal=TERM --kill-after=120s 120m lb build --verbose
