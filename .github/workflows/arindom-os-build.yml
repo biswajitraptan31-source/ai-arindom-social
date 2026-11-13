@@ -16,25 +16,34 @@ jobs:
   build:
     name: Build Debian-based live ISO
     runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
     timeout-minutes: 180
     steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates
+
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install live-build tools
+      - name: Install Debian live-build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y live-build debootstrap debian-archive-keyring xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y live-build debootstrap debian-archive-keyring xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin mtools dosfstools
 
       - name: Configure ARINDOM OS
         working-directory: ARINDOM-OS
         run: |
-          sudo lb config \
+          lb config \
             --ignore-system-defaults \
+            --mode debian \
             --distribution trixie \
             --architectures amd64 \
             --linux-packages linux-image \
             --linux-flavours amd64 \
+            --initramfs live-boot \
             --binary-images iso-hybrid \
             --debian-installer none \
             --mirror-bootstrap http://deb.debian.org/debian \
@@ -52,7 +61,7 @@ jobs:
         working-directory: ARINDOM-OS
         run: |
           mkdir -p config/package-lists
-          sudo tee config/package-lists/arindom.list.chroot > /dev/null <<'EOF'
+          tee config/package-lists/arindom.list.chroot > /dev/null <<'EOF'
           live-boot
           live-config
           live-config-systemd
@@ -94,9 +103,9 @@ jobs:
       - name: Build bootable ISO
         working-directory: ARINDOM-OS
         run: |
-          sudo lb build
+          lb build
           mkdir -p "$GITHUB_WORKSPACE/output"
-          sudo find . -maxdepth 1 -type f -name "*.iso" -exec cp {} "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso" \;
+          find . -maxdepth 1 -type f -name "*.iso" -exec cp {} "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso" \;
           test -s "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso"
 
       - name: Upload ISO artifact
