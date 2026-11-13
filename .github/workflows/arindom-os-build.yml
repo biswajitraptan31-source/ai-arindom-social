@@ -1,0 +1,99 @@
+name: Build ARINDOM OS ISO
+
+on:
+  push:
+    branches:
+      - arindom-os-build
+    paths:
+      - "ARINDOM-OS/**"
+      - ".github/workflows/arindom-os-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Debian-based live ISO
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install live-build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap xorriso squashfs-tools             grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+
+      - name: Configure ARINDOM OS
+        working-directory: ARINDOM-OS
+        run: |
+          sudo lb config \
+            --distribution trixie \
+            --architectures amd64 \
+            --binary-images iso-hybrid \
+            --debian-installer none \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --bootappend-live "boot=live components quiet splash username=arindom" \
+            --apt-recommends false \
+            --apt-options "--yes"
+
+      - name: Add desktop and essential applications
+        working-directory: ARINDOM-OS
+        run: |
+          mkdir -p config/package-lists
+          cat > config/package-lists/arindom.list.chroot <<'EOF'
+          live-boot
+          live-config
+          live-config-systemd
+          linux-image-amd64
+          systemd-sysv
+          xfce4
+          xfce4-goodies
+          lightdm
+          network-manager
+          network-manager-gnome
+          sudo
+          firefox-esr
+          thunar
+          mousepad
+          xfce4-terminal
+          pavucontrol
+          pipewire
+          wireplumber
+          firmware-linux
+          firmware-linux-nonfree
+          firmware-iwlwifi
+          firmware-realtek
+          firmware-misc-nonfree
+          usbutils
+          pciutils
+          gvfs
+          gvfs-backends
+          fonts-dejavu
+          ca-certificates
+          curl
+          wget
+          git
+          nano
+          htop
+          unzip
+          xz-utils
+         EOF
+
+      - name: Build bootable ISO
+        working-directory: ARINDOM-OS
+        run: |
+          sudo lb build
+          mkdir -p "$GITHUB_WORKSPACE/output"
+          sudo find . -maxdepth 1 -type f -name "*.iso" -exec cp {} "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso" \;
+          test -s "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso"
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARINDOM-OS-Smooth-amd64-ISO
+          path: output/ARINDOM-OS-Smooth-amd64.iso
+          if-no-files-found: error
+          retention-days: 14
