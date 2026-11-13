@@ -60,7 +60,7 @@ jobs:
             --mirror-binary-security http://security.debian.org/debian-security \
             --archive-areas "main contrib non-free non-free-firmware" \
             --keyring-packages debian-archive-keyring \
-            --bootappend-live "boot=live components quiet splash username=arindom" \
+            --bootappend-live "boot=live components quiet splash" \
             --apt-recommends false \
             --apt-options "--yes"
 
