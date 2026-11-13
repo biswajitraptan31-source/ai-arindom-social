@@ -16,4 +16,4 @@ The GitHub Actions workflow builds a live, bootable amd64 ISO and uploads it as 
 
 ## Build environment
 
-The ISO workflow runs inside a native Debian Trixie container (not Ubuntu's live-build package), explicitly selects Debian mode and the `live-boot` initramfs, and builds the amd64 kernel flavour. This avoids pulling Ubuntu-only live-system packages into the Debian image.
+The ISO workflow runs Debian Trixie on the GitHub-hosted Ubuntu VM using a privileged Docker container. This is required because live-build must mount `/dev/pts` and `/proc` for its chroot; a standard GitHub Actions job container blocks those mount operations. The workflow explicitly selects Debian mode, the `live-boot` initramfs, and the amd64 kernel flavour.
