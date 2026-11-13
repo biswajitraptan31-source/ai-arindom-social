@@ -33,7 +33,8 @@ jobs:
             --ignore-system-defaults \
             --distribution trixie \
             --architectures amd64 \
-            --linux-packages linux-image-amd64 \
+            --linux-packages linux-image \
+            --linux-flavours amd64 \
             --binary-images iso-hybrid \
             --debian-installer none \
             --mirror-bootstrap http://deb.debian.org/debian \
