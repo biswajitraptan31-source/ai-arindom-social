@@ -80,7 +80,7 @@ jobs:
           htop
           unzip
           xz-utils
-         EOF
+          EOF
 
       - name: Build bootable ISO
         working-directory: ARINDOM-OS
