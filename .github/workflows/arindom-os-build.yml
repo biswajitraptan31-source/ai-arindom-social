@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+# Prevent duplicate ISO builds from consuming runners simultaneously.
+concurrency:
+  group: arindom-os-iso-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build Debian-based live ISO
@@ -30,11 +35,14 @@ jobs:
           #!/bin/bash
           set -euxo pipefail
 
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+          echo "[ARINDOM] $(date -Is) Updating Debian package indexes"
+          timeout --signal=TERM --kill-after=60s 20m apt-get update
+          echo "[ARINDOM] $(date -Is) Installing live-build toolchain"
+          timeout --signal=TERM --kill-after=60s 60m env DEBIAN_FRONTEND=noninteractive apt-get install -y \
             live-build debootstrap debian-archive-keyring xorriso squashfs-tools \
             grub-pc-bin grub-efi-amd64-bin mtools dosfstools ca-certificates
 
+          echo "[ARINDOM] $(date -Is) Configuring Debian Trixie live image"
           lb config \
             --ignore-system-defaults \
             --mode debian \
@@ -96,7 +104,9 @@ jobs:
           xz-utils
           PACKAGES
 
-          lb build
+          echo "[ARINDOM] $(date -Is) Starting live-build ISO generation"
+          timeout --signal=TERM --kill-after=120s 120m lb build --verbose
+          echo "[ARINDOM] $(date -Is) ISO generation finished; validating output"
           iso_file="$(find . -maxdepth 1 -type f -name '*.iso' -print -quit)"
           test -n "$iso_file"
           test -s "$iso_file"
