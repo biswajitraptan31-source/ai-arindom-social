@@ -24,17 +24,19 @@ jobs:
       - name: Install live-build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap xorriso squashfs-tools             grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+          sudo apt-get install -y live-build debootstrap debian-archive-keyring xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin mtools dosfstools
 
       - name: Configure ARINDOM OS
         working-directory: ARINDOM-OS
         run: |
           sudo lb config \
+            --ignore-system-defaults \
             --distribution trixie \
             --architectures amd64 \
             --binary-images iso-hybrid \
             --debian-installer none \
             --archive-areas "main contrib non-free non-free-firmware" \
+            --keyring-packages debian-archive-keyring \
             --bootappend-live "boot=live components quiet splash username=arindom" \
             --apt-recommends false \
             --apt-options "--yes"
