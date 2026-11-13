@@ -43,7 +43,7 @@ jobs:
         working-directory: ARINDOM-OS
         run: |
           mkdir -p config/package-lists
-          cat > config/package-lists/arindom.list.chroot <<'EOF'
+          sudo tee config/package-lists/arindom.list.chroot > /dev/null <<'EOF'
           live-boot
           live-config
           live-config-systemd
