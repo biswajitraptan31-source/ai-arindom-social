@@ -16,26 +16,25 @@ jobs:
   build:
     name: Build Debian-based live ISO
     runs-on: ubuntu-24.04
-    container:
-      image: debian:trixie
     timeout-minutes: 180
     steps:
-      - name: Install Git for checkout
-        run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates
-
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install Debian live-build tools
-        run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y live-build debootstrap debian-archive-keyring xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin mtools dosfstools
+      - name: Prepare output directory
+        run: mkdir -p "$GITHUB_WORKSPACE/output"
 
-      - name: Configure ARINDOM OS
-        working-directory: ARINDOM-OS
+      - name: Build ISO in a privileged Debian container
         run: |
+          cat > "$RUNNER_TEMP/build-arindom.sh" <<'BUILD_SCRIPT'
+          #!/bin/bash
+          set -euxo pipefail
+
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            live-build debootstrap debian-archive-keyring xorriso squashfs-tools \
+            grub-pc-bin grub-efi-amd64-bin mtools dosfstools ca-certificates
+
           lb config \
             --ignore-system-defaults \
             --mode debian \
@@ -57,11 +56,8 @@ jobs:
             --apt-recommends false \
             --apt-options "--yes"
 
-      - name: Add desktop and essential applications
-        working-directory: ARINDOM-OS
-        run: |
           mkdir -p config/package-lists
-          tee config/package-lists/arindom.list.chroot > /dev/null <<'EOF'
+          cat > config/package-lists/arindom.list.chroot <<'PACKAGES'
           live-boot
           live-config
           live-config-systemd
@@ -98,15 +94,26 @@ jobs:
           htop
           unzip
           xz-utils
-          EOF
+          PACKAGES
 
-      - name: Build bootable ISO
-        working-directory: ARINDOM-OS
-        run: |
           lb build
-          mkdir -p "$GITHUB_WORKSPACE/output"
-          find . -maxdepth 1 -type f -name "*.iso" -exec cp {} "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso" \;
-          test -s "$GITHUB_WORKSPACE/output/ARINDOM-OS-Smooth-amd64.iso"
+          iso_file="$(find . -maxdepth 1 -type f -name '*.iso' -print -quit)"
+          test -n "$iso_file"
+          test -s "$iso_file"
+          cp "$iso_file" /output/ARINDOM-OS-Smooth-amd64.iso
+          test -s /output/ARINDOM-OS-Smooth-amd64.iso
+          BUILD_SCRIPT
+
+          chmod +x "$RUNNER_TEMP/build-arindom.sh"
+          # live-build must mount /dev/pts and /proc inside its chroot.
+          # A normal GitHub Actions job container blocks those mount operations,
+          # so run the build in a privileged Docker container on the hosted VM.
+          docker run --privileged --rm --security-opt seccomp=unconfined \
+            --volume "$GITHUB_WORKSPACE/ARINDOM-OS:/build" \
+            --volume "$GITHUB_WORKSPACE/output:/output" \
+            --volume "$RUNNER_TEMP/build-arindom.sh:/tmp/build-arindom.sh:ro" \
+            --workdir /build \
+            debian:trixie bash /tmp/build-arindom.sh
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
